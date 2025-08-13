@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>👨‍🌾 옥탑밭 회원관리 (Static)</title>
+  <title>👨‍🌾 옥탑밭 회원관리 (텃밭지기용)</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <meta name="color-scheme" content="light dark" />
   <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
@@ -11,12 +11,13 @@
     .card{transition:transform .15s ease, box-shadow .15s ease}
     .card:hover{transform:translateY(-2px)}
     input, select, button { outline: none; }
-    .backdrop { background: rgba(0,0,0,.35); }
+    /* 게이트가 뜨면 뒤 화면이 완전히 보이지 않도록 불투명 배경 */
+    .backdrop { background: rgba(0,0,0,0.96); }
   </style>
 </head>
 <body class="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100">
-  <!-- 비밀번호 게이트 -->
-  <div id="pwGate" class="fixed inset-0 hidden items-center justify-center p-6 backdrop">
+  <!-- 비밀번호 게이트: 처음엔 보이고, 통과하면 숨김 -->
+  <div id="pwGate" class="fixed inset-0 flex items-center justify-center p-6 backdrop z-50">
     <div class="w-full max-w-md rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-xl p-6">
       <h2 class="text-xl font-semibold">🔒 접근 비밀번호</h2>
       <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">접속 비밀번호를 입력하세요.</p>
@@ -34,148 +35,158 @@
     </div>
   </div>
 
-  <!-- 삭제 확인 모달 -->
-  <div id="confirmModal" class="fixed inset-0 hidden items-center justify-center p-6 backdrop">
-    <div class="w-full max-w-md rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-xl p-6">
-      <h3 class="text-lg font-semibold">전체 삭제</h3>
-      <p class="mt-2 text-sm text-slate-600 dark:text-slate-300">
-        전체 데이터를 삭제하려면 아래 입력칸에 <b>정말 지울거에요</b> 를 그대로 입력하세요.
-      </p>
-      <input id="confirmInput" class="mt-4 w-full rounded-xl border px-3 py-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900" placeholder="정말 지울거에요" />
-      <div class="mt-4 flex items-center justify-end gap-2">
-        <button id="cancelDelete" class="rounded-xl border px-4 py-2 border-slate-300 dark:border-slate-700">취소</button>
-        <button id="doDelete" class="rounded-xl bg-red-600 text-white px-4 py-2 opacity-50 cursor-not-allowed" disabled>삭제</button>
+  <!-- 실제 앱 콘텐츠를 래핑해서, 게이트 통과 전에는 숨김 -->
+  <div id="appContent" class="hidden">
+    <!-- 삭제 확인 모달 -->
+    <div id="confirmModal" class="fixed inset-0 hidden items-center justify-center p-6 backdrop z-40">
+      <div class="w-full max-w-md rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-xl p-6">
+        <h3 class="text-lg font-semibold">전체 삭제</h3>
+        <p class="mt-2 text-sm text-slate-600 dark:text-slate-300">
+          전체 데이터를 삭제하려면 아래 입력칸에 <b>정말 지울거에요</b> 를 그대로 입력하세요.
+        </p>
+        <input id="confirmInput" class="mt-4 w-full rounded-xl border px-3 py-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900" placeholder="정말 지울거에요" />
+        <div class="mt-4 flex items-center justify-end gap-2">
+          <button id="cancelDelete" class="rounded-xl border px-4 py-2 border-slate-300 dark:border-slate-700">취소</button>
+          <button id="doDelete" class="rounded-xl bg-red-600 text-white px-4 py-2 opacity-50 cursor-not-allowed" disabled>삭제</button>
+        </div>
       </div>
     </div>
+
+    <header class="max-w-5xl mx-auto px-4 py-6">
+      <h1 class="text-2xl sm:text-3xl font-semibold">👨‍🌾 옥탑밭 회원관리 (텃밭지기 전용)</h1>
+      <p class="text-sm text-slate-500 dark:text-slate-400">완전 정적 · 데이터는 브라우저 <b>localStorage</b>에 저장됩니다.</p>
+      <div class="mt-3 flex flex-wrap gap-2">
+        <button id="exportCsvBtn" class="rounded-xl border px-3 py-2 text-sm border-slate-300 dark:border-slate-700">CSV 내보내기</button>
+        <label class="rounded-xl border px-3 py-2 text-sm border-slate-300 dark:border-slate-700 cursor-pointer">
+          CSV 가져오기<input id="importCsvInput" type="file" accept=".csv,text/csv" class="hidden" />
+        </label>
+      </div>
+    </header>
+
+    <main class="max-w-5xl mx-auto px-4 pb-12 space-y-6">
+
+      <!-- 신규 등록 -->
+      <section class="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-slate-800/60 shadow-sm p-5">
+        <h2 class="text-lg font-semibold mb-3">신규 회원 등록</h2>
+        <form id="addForm" class="grid grid-cols-1 sm:grid-cols-6 gap-3 items-end">
+          <div class="sm:col-span-2">
+            <label class="block text-sm mb-1">이름*</label>
+            <input required name="name" class="w-full rounded-xl border px-3 py-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800" placeholder="홍길동" />
+          </div>
+          <div class="sm:col-span-2">
+            <label class="block text-sm mb-1">연락처</label>
+            <input name="phone" class="w-full rounded-xl border px-3 py-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800" placeholder="010-0000-0000" />
+          </div>
+          <div>
+            <label class="block text-sm mb-1">멤버십</label>
+            <select name="membership_type" class="w-full rounded-xl border px-3 py-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800">
+              <option value="monthly">월간</option>
+              <option value="quarterly">분기</option>
+              <option value="yearly">연간</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm mb-1">시작일</label>
+            <input type="date" name="start_date" class="w-full rounded-xl border px-3 py-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800" />
+          </div>
+          <div class="sm:col-span-2">
+            <label class="block text-sm mb-1">만료일 (미지정 시 자동)</label>
+            <input type="date" name="expiry_date" class="w-full rounded-xl border px-3 py-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800" />
+          </div>
+          <div class="sm:col-span-1">
+            <button class="w-full rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2">등록</button>
+          </div>
+        </form>
+      </section>
+
+      <!-- 필터 -->
+      <section class="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-slate-800/60 shadow-sm p-5">
+        <form id="filterForm" class="grid grid-cols-1 sm:grid-cols-5 gap-3">
+          <div class="sm:col-span-2">
+            <label class="block text-sm mb-1">검색 (이름/연락처)</label>
+            <input name="q" class="w-full rounded-xl border px-3 py-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800" placeholder="홍길동, 010..." />
+          </div>
+          <div>
+            <label class="block text-sm mb-1">상태</label>
+            <select name="status" class="w-full rounded-xl border px-3 py-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800">
+              <option value="all">전체</option>
+              <option value="active">활성</option>
+              <option value="expired">만료</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm mb-1">멤버십</label>
+            <select name="mtype" class="w-full rounded-xl border px-3 py-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800">
+              <option value="all">전체</option>
+              <option value="monthly">월간</option>
+              <option value="quarterly">분기</option>
+              <option value="yearly">연간</option>
+            </select>
+          </div>
+          <div class="sm:self-end">
+            <button class="w-full rounded-xl border px-4 py-2 border-slate-300 dark:border-slate-700">필터 적용</button>
+          </div>
+        </form>
+      </section>
+
+      <!-- 목록 -->
+      <section class="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-slate-800/60 shadow-sm p-5 overflow-x-auto">
+        <table class="w-full text-sm" id="membersTable">
+          <thead class="text-left text-slate-500 dark:text-slate-400">
+            <tr>
+              <th class="py-2 pr-3">#</th>
+              <th class="py-2 pr-3">이름</th>
+              <th class="py-2 pr-3">연락처</th>
+              <th class="py-2 pr-3">멤버십</th>
+              <th class="py-2 pr-3">시작일</th>
+              <th class="py-2 pr-3">만료일</th>
+              <th class="py-2 pr-3">상태</th>
+              <th class="py-2 pr-3 text-right">작업</th>
+            </tr>
+          </thead>
+          <tbody id="membersBody" class="align-top"></tbody>
+        </table>
+        <div id="emptyHint" class="py-6 text-center text-slate-500 dark:text-slate-400 hidden">회원이 없습니다.</div>
+      </section>
+    </main>
+
+    <footer class="max-w-5xl mx-auto px-4 py-8 text-xs text-slate-500 dark:text-slate-400 flex items-center justify-between">
+      <p>© <span id="year"></span> 옥탑밭 · otoba</p>
+      <button id="footerClearBtn" class="underline hover:no-underline text-red-600">전체 삭제</button>
+    </footer>
   </div>
-
-  <header class="max-w-5xl mx-auto px-4 py-6">
-    <h1 class="text-2xl sm:text-3xl font-semibold">👨‍🌾 옥탑밭 회원관리 (GitHub Pages용)</h1>
-    <p class="text-sm text-slate-500 dark:text-slate-400">완전 정적 · 데이터는 브라우저 <b>localStorage</b>에 저장됩니다.</p>
-    <div class="mt-3 flex flex-wrap gap-2">
-      <button id="exportCsvBtn" class="rounded-xl border px-3 py-2 text-sm border-slate-300 dark:border-slate-700">CSV 내보내기</button>
-      <label class="rounded-xl border px-3 py-2 text-sm border-slate-300 dark:border-slate-700 cursor-pointer">
-        CSV 가져오기<input id="importCsvInput" type="file" accept=".csv,text/csv" class="hidden" />
-      </label>
-    </div>
-  </header>
-
-  <main class="max-w-5xl mx-auto px-4 pb-12 space-y-6">
-
-    <!-- 신규 등록 -->
-    <section class="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-slate-800/60 shadow-sm p-5">
-      <h2 class="text-lg font-semibold mb-3">신규 회원 등록</h2>
-      <form id="addForm" class="grid grid-cols-1 sm:grid-cols-6 gap-3 items-end">
-        <div class="sm:col-span-2">
-          <label class="block text-sm mb-1">이름*</label>
-          <input required name="name" class="w-full rounded-xl border px-3 py-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800" placeholder="홍길동" />
-        </div>
-        <div class="sm:col-span-2">
-          <label class="block text-sm mb-1">연락처</label>
-          <input name="phone" class="w-full rounded-xl border px-3 py-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800" placeholder="010-0000-0000" />
-        </div>
-        <div>
-          <label class="block text-sm mb-1">멤버십</label>
-          <select name="membership_type" class="w-full rounded-xl border px-3 py-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800">
-            <option value="monthly">월간</option>
-            <option value="quarterly">분기</option>
-            <option value="yearly">연간</option>
-          </select>
-        </div>
-        <div>
-          <label class="block text-sm mb-1">시작일</label>
-          <input type="date" name="start_date" class="w-full rounded-xl border px-3 py-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800" />
-        </div>
-        <div class="sm:col-span-2">
-          <label class="block text-sm mb-1">만료일 (미지정 시 자동)</label>
-          <input type="date" name="expiry_date" class="w-full rounded-xl border px-3 py-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800" />
-        </div>
-        <div class="sm:col-span-1">
-          <button class="w-full rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2">등록</button>
-        </div>
-      </form>
-    </section>
-
-    <!-- 필터 -->
-    <section class="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-slate-800/60 shadow-sm p-5">
-      <form id="filterForm" class="grid grid-cols-1 sm:grid-cols-5 gap-3">
-        <div class="sm:col-span-2">
-          <label class="block text-sm mb-1">검색 (이름/연락처)</label>
-          <input name="q" class="w-full rounded-xl border px-3 py-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800" placeholder="홍길동, 010..." />
-        </div>
-        <div>
-          <label class="block text-sm mb-1">상태</label>
-          <select name="status" class="w-full rounded-xl border px-3 py-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800">
-            <option value="all">전체</option>
-            <option value="active">활성</option>
-            <option value="expired">만료</option>
-          </select>
-        </div>
-        <div>
-          <label class="block text-sm mb-1">멤버십</label>
-          <select name="mtype" class="w-full rounded-xl border px-3 py-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800">
-            <option value="all">전체</option>
-            <option value="monthly">월간</option>
-            <option value="quarterly">분기</option>
-            <option value="yearly">연간</option>
-          </select>
-        </div>
-        <div class="sm:self-end">
-          <button class="w-full rounded-xl border px-4 py-2 border-slate-300 dark:border-slate-700">필터 적용</button>
-        </div>
-      </form>
-    </section>
-
-    <!-- 목록 -->
-    <section class="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-slate-800/60 shadow-sm p-5 overflow-x-auto">
-      <table class="w-full text-sm" id="membersTable">
-        <thead class="text-left text-slate-500 dark:text-slate-400">
-          <tr>
-            <th class="py-2 pr-3">#</th>
-            <th class="py-2 pr-3">이름</th>
-            <th class="py-2 pr-3">연락처</th>
-            <th class="py-2 pr-3">멤버십</th>
-            <th class="py-2 pr-3">시작일</th>
-            <th class="py-2 pr-3">만료일</th>
-            <th class="py-2 pr-3">상태</th>
-            <th class="py-2 pr-3 text-right">작업</th>
-          </tr>
-        </thead>
-        <tbody id="membersBody" class="align-top"></tbody>
-      </table>
-      <div id="emptyHint" class="py-6 text-center text-slate-500 dark:text-slate-400 hidden">회원이 없습니다.</div>
-    </section>
-  </main>
-
-  <footer class="max-w-5xl mx-auto px-4 py-8 text-xs text-slate-500 dark:text-slate-400 flex items-center justify-between">
-    <p>© <span id="year"></span> 옥탑밭 · otoba</p>
-    <button id="footerClearBtn" class="underline hover:no-underline text-red-600">전체 삭제</button>
-  </footer>
 
   <script>
     // ---------- Password Gate ----------
     const PW = '@data2022';
     const sessionKey = 'otobap_pw_ok';
     const pwGate = document.getElementById('pwGate');
+    const appContent = document.getElementById('appContent');
     const pwInput = document.getElementById('pwInput');
     const pwForm = document.getElementById('pwForm');
     const pwErr = document.getElementById('pwError');
     const rememberSession = document.getElementById('rememberSession');
 
-    function showGate(){
-      pwGate.classList.remove('hidden');
+    function openGate(){
+      // gate visible, app hidden
       pwGate.classList.add('flex');
-      setTimeout(()=>pwInput.focus(), 50);
+      pwGate.classList.remove('hidden');
+      appContent.classList.add('hidden');
+      setTimeout(()=>pwInput.focus(), 30);
     }
-    function hideGate(){
+    function closeGate(){
       pwGate.classList.add('hidden');
       pwGate.classList.remove('flex');
+      appContent.classList.remove('hidden');
     }
-    function checkGate(){
-      if(sessionStorage.getItem(sessionKey)==='1'){ return true; }
-      showGate();
-      return false;
+
+    // initial state
+    if (sessionStorage.getItem(sessionKey) === '1') {
+      closeGate();
+    } else {
+      openGate();
     }
+
     pwForm.addEventListener('submit', (e)=>{
       e.preventDefault();
       if(pwInput.value === PW){
@@ -183,7 +194,7 @@
           sessionStorage.setItem(sessionKey, '1');
         }
         pwErr.classList.add('hidden');
-        hideGate();
+        closeGate();
       }else{
         pwErr.classList.remove('hidden');
         pwInput.select();
@@ -339,12 +350,8 @@
     // ---------- Events ----------
     document.getElementById('year').textContent = new Date().getFullYear();
 
-    // gate first
-    if(!checkGate()){ /* wait user input */ }
-
-    document.getElementById('addForm').addEventListener('submit', (e)=>{
+    document.getElementById('addForm')?.addEventListener('submit', (e)=>{
       e.preventDefault();
-      if(!sessionStorage.getItem(sessionKey)) { showGate(); return; }
       const fd = new FormData(e.target);
       const name = (fd.get('name')||'').trim();
       if(!name){ alert('이름은 필수입니다.'); return; }
@@ -364,13 +371,12 @@
       render();
     });
 
-    document.getElementById('filterForm').addEventListener('submit',(e)=>{
+    document.getElementById('filterForm')?.addEventListener('submit',(e)=>{
       e.preventDefault();
       render();
     });
 
-    document.getElementById('exportCsvBtn').addEventListener('click', ()=>{
-      if(!sessionStorage.getItem(sessionKey)) { showGate(); return; }
+    document.getElementById('exportCsvBtn')?.addEventListener('click', ()=>{
       const st = load();
       const csv = toCSV(st.rows);
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
@@ -384,8 +390,7 @@
       URL.revokeObjectURL(url);
     });
 
-    document.getElementById('importCsvInput').addEventListener('change', (e)=>{
-      if(!sessionStorage.getItem(sessionKey)) { showGate(); e.target.value=''; return; }
+    document.getElementById('importCsvInput')?.addEventListener('change', (e)=>{
       const file = e.target.files[0];
       if(!file) return;
       const reader = new FileReader();
@@ -421,8 +426,7 @@
     const cancelDelete = document.getElementById('cancelDelete');
     const magicPhrase = '정말 지울거에요';
 
-    footerClearBtn.addEventListener('click', ()=>{
-      if(!sessionStorage.getItem(sessionKey)) { showGate(); return; }
+    footerClearBtn?.addEventListener('click', ()=>{
       confirmModal.classList.remove('hidden');
       confirmModal.classList.add('flex');
       confirmInput.value='';
@@ -430,17 +434,17 @@
       doDelete.classList.add('opacity-50','cursor-not-allowed');
       setTimeout(()=>confirmInput.focus(), 50);
     });
-    cancelDelete.addEventListener('click', ()=>{
+    cancelDelete?.addEventListener('click', ()=>{
       confirmModal.classList.add('hidden');
       confirmModal.classList.remove('flex');
     });
-    confirmInput.addEventListener('input', ()=>{
+    confirmInput?.addEventListener('input', ()=>{
       const ok = confirmInput.value.trim() === magicPhrase;
       doDelete.disabled = !ok;
       doDelete.classList.toggle('opacity-50', !ok);
       doDelete.classList.toggle('cursor-not-allowed', !ok);
     });
-    doDelete.addEventListener('click', ()=>{
+    doDelete?.addEventListener('click', ()=>{
       const st = { seq: 0, rows: [] };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(st));
       confirmModal.classList.add('hidden');
@@ -449,7 +453,7 @@
       alert('전체 삭제 완료');
     });
 
-    // Initial render
+    // 초기 렌더 (게이트 통과 후에만 보이지만, 상태 계산을 위해 호출)
     render();
   </script>
 </body>
