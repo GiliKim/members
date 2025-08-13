@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block title %}회원 목록 · 옥탑밭{% endblock %}
+{% block content %}
+<div class="grid grid-cols-1 gap-6 lg:grid-cols-[1fr]">
+  <section class="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white/70 dark:bg-slate-800/60 shadow-sm p-5">
+    <h2 class="text-lg font-semibold mb-3">신규 회원 등록</h2>
+    <form method="post" action="{{ url_for('add_member') }}" class="grid grid-cols-1 sm:grid-cols-6 gap-3 items-end">
+      <div class="sm:col-span-2">
+        <label class="block text-sm mb-1">이름*</label>
+        <input required name="name" class="w-full rounded-xl border px-3 py-2 border-slate-300 dark:border-slate-700 bg-white/80 dark:bg-slate-800" placeholder="홍길동" />
+      </div>
+      <div class="sm:col-span-2">
+        <label class="block text-sm mb-1">연락처</label>
+        <input name="phone" class="w-full rounded-xl border px-3 py-2 border-slate-300 dark:border-slate-700 bg-white/80 dark:bg-slate-800" placeholder="010-0000-0000" />
+      </div>
+      <div>
+        <label class="block text-sm mb-1">멤버십 종류</label>
+        <select name="membership_type" class="w-full rounded-xl border px-3 py-2 border-slate-300 dark:border-slate-700 bg-white/80 dark:bg-slate-800">
+          <option value="monthly">월간</option>
+          <option value="quarterly">분기</option>
+          <option value="yearly">연간</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-sm mb-1">시작일</label>
+        <input type="date" name="start_date" class="w-full rounded-xl border px-3 py-2 border-slate-300 dark:border-slate-700 bg-white/80 dark:bg-slate-800" />
+      </div>
+      <div class="sm:col-span-2">
+        <label class="block text-sm mb-1">만료일 (미지정 시 자동)</label>
+        <input type="date" name="expiry_date" class="w-full rounded-xl border px-3 py-2 border-slate-300 dark:border-slate-700 bg-white/80 dark:bg-slate-800" />
+      </div>
+      <div class="sm:col-span-1">
+        <button class="w-full rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2">등록</button>
+      </div>
+    </form>
+  </section>
+
+  <section class="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white/70 dark:bg-slate-800/60 shadow-sm p-5">
+    <form method="get" action="{{ url_for('index') }}" class="grid grid-cols-1 sm:grid-cols-5 gap-3">
+      <div class="sm:col-span-2">
+        <label class="block text-sm mb-1">검색 (이름/연락처)</label>
+        <input name="q" value="{{ q }}" class="w-full rounded-xl border px-3 py-2 border-slate-300 dark:border-slate-700 bg-white/80 dark:bg-slate-800" placeholder="홍길동, 010..." />
+      </div>
+      <div>
+        <label class="block text-sm mb-1">상태</label>
+        <select name="status" class="w-full rounded-xl border px-3 py-2 border-slate-300 dark:border-slate-700 bg-white/80 dark:bg-slate-800">
+          <option value="all" {% if status=='all' %}selected{% endif %}>전체</option>
+          <option value="active" {% if status=='active' %}selected{% endif %}>활성</option>
+          <option value="expired" {% if status=='expired' %}selected{% endif %}>만료</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-sm mb-1">멤버십</label>
+        <select name="mtype" class="w-full rounded-xl border px-3 py-2 border-slate-300 dark:border-slate-700 bg-white/80 dark:bg-slate-800">
+          <option value="all" {% if mtype=='all' %}selected{% endif %}>전체</option>
+          <option value="monthly" {% if mtype=='monthly' %}selected{% endif %}>월간</option>
+          <option value="quarterly" {% if mtype=='quarterly' %}selected{% endif %}>분기</option>
+          <option value="yearly" {% if mtype=='yearly' %}selected{% endif %}>연간</option>
+        </select>
+      </div>
+      <div class="sm:self-end">
+        <button class="w-full rounded-xl border px-4 py-2 border-slate-300 dark:border-slate-700">필터 적용</button>
+      </div>
+    </form>
+  </section>
+
+  <section class="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white/70 dark:bg-slate-800/60 shadow-sm p-5 overflow-x-auto">
+    <table class="w-full text-sm">
+      <thead class="text-left text-slate-500 dark:text-slate-400">
+        <tr>
+          <th class="py-2 pr-3">#</th>
+          <th class="py-2 pr-3">이름</th>
+          <th class="py-2 pr-3">연락처</th>
+          <th class="py-2 pr-3">멤버십</th>
+          <th class="py-2 pr-3">시작일</th>
+          <th class="py-2 pr-3">만료일</th>
+          <th class="py-2 pr-3">상태</th>
+          <th class="py-2 pr-3"></th>
+        </tr>
+      </thead>
+      <tbody class="align-top">
+        {% for m in members %}
+        <tr class="border-t border-slate-200 dark:border-slate-700">
+          <td class="py-2 pr-3">{{ m.id }}</td>
+          <td class="py-2 pr-3 font-medium">{{ m.name }}</td>
+          <td class="py-2 pr-3">{{ m.phone or '-' }}</td>
+          <td class="py-2 pr-3">{% if m.membership_type == 'monthly' %}월간{% elif m.membership_type == 'quarterly' %}분기{% elif m.membership_type == 'yearly' %}연간{% else %}{{ m.membership_type }}{% endif %}</td>
+          <td class="py-2 pr-3">{{ m.start_date.isoformat() }}</td>
+          <td class="py-2 pr-3">{{ m.expiry_date.isoformat() }}</td>
+          <td class="py-2 pr-3">
+            {% if m.is_expired(today) %}
+              <span class="inline-flex items-center rounded-lg bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-200 px-2 py-1 text-xs">만료</span>
+            {% else %}
+              <span class="inline-flex items-center rounded-lg bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-200 px-2 py-1 text-xs">활성</span>
+            {% endif %}
+          </td>
+          <td class="py-2 pr-3 text-right">
+            <form method="post" action="{{ url_for('delete_member', member_id=m.id) }}" onsubmit="return confirm('삭제할까요?');">
+              <button class="rounded-lg border px-3 py-1 text-xs border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700">삭제</button>
+            </form>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="8" class="py-6 text-center text-slate-500 dark:text-slate-400">회원이 없습니다.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+</div>
+{% endblock %}

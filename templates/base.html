@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{% block title %}옥탑밭 회원관리{% endblock %}</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <meta name="color-scheme" content="light dark" />
+</head>
+<body class="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100">
+  <header class="max-w-5xl mx-auto px-4 py-6">
+    <h1 class="text-2xl sm:text-3xl font-semibold">👨‍🌾 옥탑밭 회원관리</h1>
+    <p class="text-sm text-slate-500 dark:text-slate-400">만료일 자동/수동, 만료 태그, 필터, 삭제</p>
+  </header>
+  <main class="max-w-5xl mx-auto px-4 pb-12">
+    {% with messages = get_flashed_messages(with_categories=True) %}
+      {% if messages %}
+        <div class="space-y-2 mb-4">
+          {% for category, msg in messages %}
+            <div class="rounded-lg px-3 py-2 text-sm {% if category=='error' %}bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-200{% else %}bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-200{% endif %}">{{ msg }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+    {% block content %}{% endblock %}
+  </main>
+  <footer class="max-w-5xl mx-auto px-4 py-8 text-xs text-slate-500 dark:text-slate-400">
+    <p>© 옥탑밭 · otoba</p>
+  </footer>
+</body>
+</html>
