@@ -1,0 +1,369 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>👨‍🌾 옥탑밭 회원관리 (Static)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <meta name="color-scheme" content="light dark" />
+  <style>
+    .card{transition:transform .15s ease, box-shadow .15s ease}
+    .card:hover{transform:translateY(-2px)}
+    input, select, button { outline: none; }
+  </style>
+</head>
+<body class="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100">
+  <header class="max-w-5xl mx-auto px-4 py-6">
+    <h1 class="text-2xl sm:text-3xl font-semibold">👨‍🌾 옥탑밭 회원관리 (GitHub Pages용)</h1>
+    <p class="text-sm text-slate-500 dark:text-slate-400">완전 정적 · 데이터는 브라우저 <b>localStorage</b>에 저장됩니다. (브라우저/PC 바꾸면 안 보일 수 있어요)</p>
+    <div class="mt-3 flex flex-wrap gap-2">
+      <button id="exportCsvBtn" class="rounded-xl border px-3 py-2 text-sm border-slate-300 dark:border-slate-700">CSV 내보내기</button>
+      <label class="rounded-xl border px-3 py-2 text-sm border-slate-300 dark:border-slate-700 cursor-pointer">
+        CSV 가져오기<input id="importCsvInput" type="file" accept=".csv,text/csv" class="hidden" />
+      </label>
+      <button id="clearAllBtn" class="rounded-xl border px-3 py-2 text-sm border-red-300 text-red-600 dark:border-red-700">전체 삭제</button>
+    </div>
+  </header>
+
+  <main class="max-w-5xl mx-auto px-4 pb-12 space-y-6">
+
+    <!-- 신규 등록 -->
+    <section class="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-slate-800/60 shadow-sm p-5">
+      <h2 class="text-lg font-semibold mb-3">신규 회원 등록</h2>
+      <form id="addForm" class="grid grid-cols-1 sm:grid-cols-6 gap-3 items-end">
+        <div class="sm:col-span-2">
+          <label class="block text-sm mb-1">이름*</label>
+          <input required name="name" class="w-full rounded-xl border px-3 py-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800" placeholder="홍길동" />
+        </div>
+        <div class="sm:col-span-2">
+          <label class="block text-sm mb-1">연락처</label>
+          <input name="phone" class="w-full rounded-xl border px-3 py-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800" placeholder="010-0000-0000" />
+        </div>
+        <div>
+          <label class="block text-sm mb-1">멤버십</label>
+          <select name="membership_type" class="w-full rounded-xl border px-3 py-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800">
+            <option value="monthly">월간</option>
+            <option value="quarterly">분기</option>
+            <option value="yearly">연간</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm mb-1">시작일</label>
+          <input type="date" name="start_date" class="w-full rounded-xl border px-3 py-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800" />
+        </div>
+        <div class="sm:col-span-2">
+          <label class="block text-sm mb-1">만료일 (미지정 시 자동)</label>
+          <input type="date" name="expiry_date" class="w-full rounded-xl border px-3 py-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800" />
+        </div>
+        <div class="sm:col-span-1">
+          <button class="w-full rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2">등록</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- 필터 -->
+    <section class="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-slate-800/60 shadow-sm p-5">
+      <form id="filterForm" class="grid grid-cols-1 sm:grid-cols-5 gap-3">
+        <div class="sm:col-span-2">
+          <label class="block text-sm mb-1">검색 (이름/연락처)</label>
+          <input name="q" class="w-full rounded-xl border px-3 py-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800" placeholder="홍길동, 010..." />
+        </div>
+        <div>
+          <label class="block text-sm mb-1">상태</label>
+          <select name="status" class="w-full rounded-xl border px-3 py-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800">
+            <option value="all">전체</option>
+            <option value="active">활성</option>
+            <option value="expired">만료</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm mb-1">멤버십</label>
+          <select name="mtype" class="w-full rounded-xl border px-3 py-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800">
+            <option value="all">전체</option>
+            <option value="monthly">월간</option>
+            <option value="quarterly">분기</option>
+            <option value="yearly">연간</option>
+          </select>
+        </div>
+        <div class="sm:self-end">
+          <button class="w-full rounded-xl border px-4 py-2 border-slate-300 dark:border-slate-700">필터 적용</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- 목록 -->
+    <section class="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-slate-800/60 shadow-sm p-5 overflow-x-auto">
+      <table class="w-full text-sm" id="membersTable">
+        <thead class="text-left text-slate-500 dark:text-slate-400">
+          <tr>
+            <th class="py-2 pr-3">#</th>
+            <th class="py-2 pr-3">이름</th>
+            <th class="py-2 pr-3">연락처</th>
+            <th class="py-2 pr-3">멤버십</th>
+            <th class="py-2 pr-3">시작일</th>
+            <th class="py-2 pr-3">만료일</th>
+            <th class="py-2 pr-3">상태</th>
+            <th class="py-2 pr-3 text-right">작업</th>
+          </tr>
+        </thead>
+        <tbody id="membersBody" class="align-top"></tbody>
+      </table>
+      <div id="emptyHint" class="py-6 text-center text-slate-500 dark:text-slate-400 hidden">회원이 없습니다.</div>
+    </section>
+  </main>
+
+  <footer class="max-w-5xl mx-auto px-4 py-8 text-xs text-slate-500 dark:text-slate-400">
+    <p>© <span id="year"></span> 옥탑밭 · otoba</p>
+  </footer>
+
+  <script>
+    // ---------- Utilities ----------
+    const STORAGE_KEY = 'otobap_members_v1';
+    const DURATIONS = { monthly: 1, quarterly: 3, yearly: 12 };
+
+    const $ = (sel) => document.querySelector(sel);
+    const $$ = (sel) => Array.from(document.querySelectorAll(sel));
+
+    function fmt(d){
+      if(!d) return '';
+      const dt = new Date(d);
+      if(Number.isNaN(dt.getTime())) return '';
+      return dt.toISOString().slice(0,10);
+    }
+
+    function addMonths(date, n){
+      const d = new Date(date);
+      const day = d.getDate();
+      d.setMonth(d.getMonth()+n);
+      // handle month overflow (e.g., Jan 31 -> Feb 28)
+      if(d.getDate() !== day){
+        d.setDate(0);
+      }
+      return d;
+    }
+
+    function calcExpiry(start, membership_type){
+      const months = DURATIONS[membership_type] || 1;
+      return addMonths(start, months);
+    }
+
+    function load(){
+      try{
+        const raw = localStorage.getItem(STORAGE_KEY);
+        return raw ? JSON.parse(raw) : { seq: 0, rows: [] };
+      }catch(e){
+        return { seq: 0, rows: [] };
+      }
+    }
+    function save(state){
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }
+
+    function statusOf(expiry){
+      const today = new Date(); today.setHours(0,0,0,0);
+      const ed = new Date(expiry); ed.setHours(0,0,0,0);
+      return ed < today ? 'expired' : 'active';
+    }
+
+    function toCSV(rows){
+      const header = ['id','name','phone','membership_type','start_date','expiry_date'];
+      const lines = [header.join(',')];
+      for(const r of rows){
+        const vals = [r.id, r.name, r.phone || '', r.membership_type, fmt(r.start_date), fmt(r.expiry_date)];
+        // naive CSV escape
+        lines.push(vals.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(','));
+      }
+      return lines.join('\n');
+    }
+
+    function parseCSV(text){
+      // very simple CSV parser assuming double-quoted CSV we output
+      const lines = text.trim().split(/\r?\n/);
+      const header = lines.shift();
+      const cols = header.split(',').map(s=>s.replace(/^"|"$/g,''));
+      const idx = {}; cols.forEach((c,i)=>idx[c]=i);
+      const rows = [];
+      for(const line of lines){
+        const cells = [];
+        let cur = '', inside=false;
+        for(let i=0;i<line.length;i++){
+          const ch=line[i];
+          if(ch==='"'){
+            if(inside && line[i+1]==='"'){ cur+='"'; i++; }
+            else inside=!inside;
+          }else if(ch===',' && !inside){
+            cells.push(cur); cur='';
+          }else{
+            cur+=ch;
+          }
+        }
+        cells.push(cur);
+        const get = (k)=> (cells[idx[k]]||'').replace(/^"|"$/g,'');
+        rows.push({
+          id: Number(get('id')) || 0,
+          name: get('name'),
+          phone: get('phone')||null,
+          membership_type: get('membership_type')||'monthly',
+          start_date: get('start_date')||fmt(new Date()),
+          expiry_date: get('expiry_date')||fmt(new Date())
+        });
+      }
+      return rows;
+    }
+
+    // ---------- Render ----------
+    function render(){
+      const st = load();
+      const tbody = $('#membersBody');
+      tbody.innerHTML = '';
+      const form = $('#filterForm');
+      const q = (form.q.value || '').trim().toLowerCase();
+      const status = form.status.value;
+      const mtype = form.mtype.value;
+
+      let rows = st.rows.slice().sort((a,b)=>b.id-a.id);
+
+      if(q){
+        rows = rows.filter(r => (r.name||'').toLowerCase().includes(q) || (r.phone||'').toLowerCase().includes(q));
+      }
+      if(['monthly','quarterly','yearly'].includes(mtype)){
+        rows = rows.filter(r => r.membership_type === mtype);
+      }
+      if(status==='active'){
+        rows = rows.filter(r => statusOf(r.expiry_date)==='active');
+      }else if(status==='expired'){
+        rows = rows.filter(r => statusOf(r.expiry_date)==='expired');
+      }
+
+      if(rows.length === 0){
+        $('#emptyHint').classList.remove('hidden');
+      }else{
+        $('#emptyHint').classList.add('hidden');
+      }
+
+      for(const r of rows){
+        const tr = document.createElement('tr');
+        tr.className = 'border-t border-slate-200 dark:border-slate-700';
+        tr.innerHTML = `
+          <td class="py-2 pr-3">${r.id}</td>
+          <td class="py-2 pr-3 font-medium">${r.name||''}</td>
+          <td class="py-2 pr-3">${r.phone||'-'}</td>
+          <td class="py-2 pr-3">
+            ${r.membership_type==='monthly'?'월간':r.membership_type==='quarterly'?'분기':r.membership_type==='yearly'?'연간':r.membership_type}
+          </td>
+          <td class="py-2 pr-3">${fmt(r.start_date)}</td>
+          <td class="py-2 pr-3">${fmt(r.expiry_date)}</td>
+          <td class="py-2 pr-3">
+            ${
+              statusOf(r.expiry_date)==='expired'
+              ? '<span class="inline-flex items-center rounded-lg bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-200 px-2 py-1 text-xs">만료</span>'
+              : '<span class="inline-flex items-center rounded-lg bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-200 px-2 py-1 text-xs">활성</span>'
+            }
+          </td>
+          <td class="py-2 pr-3 text-right">
+            <button data-id="${r.id}" class="delBtn rounded-lg border px-3 py-1 text-xs border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700">삭제</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      }
+
+      $$('.delBtn').forEach(btn=>{
+        btn.addEventListener('click', (e)=>{
+          const id = Number(e.currentTarget.getAttribute('data-id'));
+          if(!confirm('삭제할까요?')) return;
+          const st = load();
+          st.rows = st.rows.filter(r=>r.id!==id);
+          save(st);
+          render();
+        }, { once: true });
+      });
+    }
+
+    // ---------- Events ----------
+    $('#year').textContent = new Date().getFullYear();
+
+    $('#addForm').addEventListener('submit', (e)=>{
+      e.preventDefault();
+      const fd = new FormData(e.target);
+      const name = (fd.get('name')||'').trim();
+      if(!name){ alert('이름은 필수입니다.'); return; }
+      const phone = (fd.get('phone')||'').trim() || null;
+      const membership_type = fd.get('membership_type')||'monthly';
+      const start_date = fd.get('start_date') || fmt(new Date());
+      let expiry_date = fd.get('expiry_date');
+      if(!expiry_date){
+        expiry_date = fmt(calcExpiry(start_date, membership_type));
+      }
+      const st = load();
+      const id = (st.seq||0)+1;
+      st.seq = id;
+      st.rows.push({ id, name, phone, membership_type, start_date, expiry_date });
+      save(st);
+      e.target.reset();
+      render();
+    });
+
+    $('#filterForm').addEventListener('submit',(e)=>{
+      e.preventDefault();
+      render();
+    });
+
+    $('#exportCsvBtn').addEventListener('click', ()=>{
+      const st = load();
+      const csv = toCSV(st.rows);
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'members_export.csv';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    });
+
+    $('#importCsvInput').addEventListener('change', (e)=>{
+      const file = e.target.files[0];
+      if(!file) return;
+      const reader = new FileReader();
+      reader.onload = ()=>{
+        try{
+          const rows = parseCSV(reader.result);
+          const st = load();
+          let maxId = st.seq || 0;
+          for(const r of rows){
+            maxId = Math.max(maxId, r.id||0);
+          }
+          st.seq = maxId;
+          const existingIds = new Set(st.rows.map(r=>r.id));
+          // merge by id; if id exists, append with new id
+          for(const r of rows){
+            if(existingIds.has(r.id)){
+              maxId += 1;
+              r.id = maxId;
+            }
+            st.rows.push(r);
+          }
+          save(st);
+          render();
+          alert('CSV 가져오기 완료');
+        }catch(err){
+          console.error(err);
+          alert('CSV 파싱 중 오류가 발생했습니다.');
+        }
+      };
+      reader.readAsText(file, 'utf-8');
+      e.target.value = '';
+    });
+
+    $('#clearAllBtn').addEventListener('click', ()=>{
+      if(!confirm('정말 모든 데이터를 삭제할까요? 이 작업은 되돌릴 수 없습니다.')) return;
+      save({ seq: 0, rows: [] });
+      render();
+    });
+
+    // initial
+    render();
+  </script>
+</body>
+</html>
